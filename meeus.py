@@ -9,6 +9,11 @@
 """
 
 # Import des modules
+try:
+    import mes_modules_path
+except:
+    pass
+import incertitudes.incert as incert
 
 # Définitions constantes et variables globales
 jours_semaine = {
@@ -222,3 +227,15 @@ def joursemaine(Y, M, D):
     [Y, M, D] = conforme(Y, M, D)
     JJ = jourjulien(Y, M, int(D))
     return jours_semaine[int(JJ+1.5) % 7]
+
+def mnn_precession(T):
+    """
+        Calcul des paramètres m,n et n de la précession.
+        T en siècle julien.
+        m_alpha et n_alpha en seconde.
+        n_delta en seconde d'arc.
+    """
+    m_alpha = incert.i("3.07496") + incert.i("0.00186")*incert.it(T, 0)
+    n_alpha = incert.i("1.33621") - incert.i("0.00057")*incert.it(T, 0)
+    n_delta = incert.i("20.0431") - incert.i("0.0085")*incert.it(T, 0)
+    return (m_alpha, n_alpha, n_delta)
