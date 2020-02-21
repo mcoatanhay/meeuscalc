@@ -15,7 +15,7 @@ import sys
 
 # Définitions constantes et variables globales
 filerep()
-file = open('readme.md', 'w')
+file = open('readme.txt', 'w')
 sys.stdout = file
 help(meeus)
 file.close()
