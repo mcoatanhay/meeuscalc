@@ -11,6 +11,8 @@
 import sys
 
 # Définitions constantes et variables globales
-sys.path.append('c:/users/mc/mu_code/_mes_modules/')
+repertoire = 'c:\\users\\mc\\mu_code\\_mes_modules\\'
+sys.path.append(repertoire)
+print('mes modules path :', repertoire)
 
 # Définitions fonctions et classes

@@ -13,6 +13,7 @@ try:
     import mes_modules_path
 except:
     pass
+import etoilescat.etoiles as etoiles
 import incertitudes.incert as incert
 
 # Définitions constantes et variables globales
@@ -25,6 +26,14 @@ def avantjj0(Y, M, D):
     """
         Vérifie si une date (Y, M, D) se trouve avant le jour julien 0, c'est
         à dire avant le 1er janvier - 4712 à 12H (-4712, 1, 1.5).
+        Entrée :
+            Y L'année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            booleen : True or False
+            erreur : si (Y, M, D) n'est pas une date conforme
+                - voir conforme(Y, M, D) -
     """
     [Y, M, D] = conforme(Y, M, D)
     if(Y < -4712):
@@ -37,6 +46,12 @@ def avantjj0(Y, M, D):
 def bissextile(Y):
     """
         Vérifie si une année Y est bissextile.
+        Entrée :
+            Y l’année
+        Retour :
+            True
+            False
+            Erreur si Y n’est pas convertible en entier
     """
     Y = int(Y)
     if(Y <= 1582):
@@ -51,6 +66,15 @@ def bissextile(Y):
 def calendrier(Y, M, D):
     """
         Retourne le calendrier (Julien ou Gregorien) qui correspond à une date.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            « Julien »
+            « Grégorien »
+            Erreur si (Y, M, D) n’est pas une date conforme
+                - voir conforme(Y, M, D) -
     """
     [Y, M, D] = conforme(Y, M, D)
     if(Y > 1582):
@@ -71,6 +95,20 @@ def calendrier(Y, M, D):
 def conforme(Y, M, D):
     """
         Vérifie la conformité de la date proposée.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            [Y, M, D]
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+            Erreur si :
+                le mois n’est pas compris entre 1 et 12
+                le nombre de jours n’est pas correct pour le mois et l’année.
+                si la date correspond à un jour perdu lors que changement de
+                calendrier Julien vers Grégorien
     """
     # Vérification du format de Y, M et D
     Y = int(Y)
@@ -103,11 +141,81 @@ def conforme(Y, M, D):
         raise ValueError(message)
     return [Y, M, D]
 
+def coordonnees_moyennes(HR, A):
+    """
+        Calcul les coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            tuple (alpha, delta)
+            alpha = ascension droite (hms)
+            delta = déclinaison (°'")
+    """
+    calculs = []
+    resultat = {}
+    data = etoiles.etoile_data(HR)
+    calculs.append({'pmRA (mas/y)': data.pmRA})
+    pmRA = incert.i(data.pmRA)/(15*1000)
+    calculs.append({'pmRA (s/y)': pmRA})
+    calculs.append({'pmDE (mas/y)': data.pmDE})
+    pmDE = incert.i(data.pmDE)/1000
+    calculs.append({'pmDE ("/y)': pmDE})
+    alpha = int(data.RAh) + incert.i(int(data.RAm))/60
+    alpha += incert.i(data.RAs)/3600
+    alpha *= 15
+    calculs.append({'RA0 (°)': alpha})
+    delta = int(data.DEsgn + data.DEd) + incert.i(int(data.DEm))/60
+    delta += incert.i(data.DEs)/3600
+    calculs.append({'DEC0 (°)': delta})
+    deltaA = A - 2000
+    S = incert.it(deltaA/100, 0)
+    (m_alpha, n_alpha, n_delta) = parametres_precession(S)
+    calculs.append({'m_alpha (s)': m_alpha})
+    calculs.append({'n_alpha (s)':  n_alpha})
+    calculs.append({'n_delta (")': n_delta})
+    precRA = n_alpha*incert.sin(incert.pi*alpha/180)
+    precRA *= incert.tan(incert.pi*delta/180)
+    precRA += m_alpha
+    calculs.append({'precRA (s)': precRA})
+    precDE = n_delta*incert.cos(incert.pi*alpha/180)
+    calculs.append({'precDE (")': precDE})
+    varRA = precRA + pmRA
+    calculs.append({'varRA (s)': varRA})
+    varDE = precDE + pmDE
+    calculs.append({'varDE (")': varDE})
+    calculs.append({'delta A (an)': deltaA})
+    varRAtot = varRA*deltaA
+    calculs.append({'varRAtot (s)': varRAtot})
+    varDEtot = varDE*deltaA
+    calculs.append({'varDEtot (")': varDEtot})
+    RAf = alpha + varRAtot*15/3600
+    calculs.append({'RAf (°)': RAf})
+    DEf = delta + varDEtot/3600
+    calculs.append({'DEf (°)': DEf})
+    resultat['calculs'] = calculs
+    resultat['RAf (°)'] = RAf
+    resultat['DEf (°)'] = DEf;
+    return resultat
+
 def date(JJ):
     """
         Détermine la date du calendrier à partir du jour julien.
         La méthode suivante est valable pour les années positives aussi bien
         que négatives, mais non pour les jours juliens négatifs.
+        Entrée :
+            JJ le jour julien
+        Retour :
+            [Y, M, D]
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+            Erreur si :
+                JJ n’est pas convertible en float
+                JJ < 0
     """
     JJ = float(JJ)
     if(JJ < 0):
@@ -140,6 +248,14 @@ def date(JJ):
 def dimanchepaques(Y):
     """
         Calcul la date du jour de Pâques de l'année Y.
+        Entrée :
+            Y l’année
+        Retour :
+            [Y, M, D]
+            Y l’année
+            M le numéro du mois
+            D le jour du mois
+            Erreur si Y n’est pas convertible en entier
     """
     Y = int(Y)
     if(Y > 1582):
@@ -171,6 +287,16 @@ def dimanchepaques(Y):
 def jourannee(Y, M, D):
     """
         Détermine le numéro de jour de l'année correspondant à une date.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            N numéro du jour de l’année
+            Entre 1 et 365 pour une année régulière
+            Entre 1 et 366 pour une année bissextile
+            Erreur si (Y, M, D) n’est pas une date conforme
+                - voir conforme(Y, M, D) -
     """
     [Y, M, D] = conforme(Y, M, D)
     if(bissextile(Y)):
@@ -185,6 +311,16 @@ def jourjulien(Y, M, D):
         Détermine la valeur du jour julien qui correspond à une date donnée.
         Cette méthode est valable aussi bien pour les années positives que
         négatives, mais pas pour des jours juliens négatifs.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            JJ jour julien
+            Erreur si :
+                avantjj0(Y, M, D)
+                (Y, M, D) n’est pas une date conforme
+                    - voir conforme(Y, M, D) –
     """
     if avantjj0(Y, M, D):
         message = "Méthode non valable pour les jours juliens négatifs"
@@ -205,6 +341,13 @@ def jourjulien0(Y):
         Détermine le jour julien correspondant au 0.0 janvier de l'année Y.
         Cette méthode est valable aussi bien pour les années positives que
         négatives, mais pas pour des jours juliens négatifs.
+        Entrée :
+            Y l’année
+        Retour :
+            JJ jour julien
+            Erreur si :
+                Y n’est pas convertible en entier
+                Y < -4711
     """
     Y = int(Y)
     return jourjulien(Y-1, 12, 31)
@@ -217,25 +360,46 @@ def jourjulienmodif(Y, M, D):
         L'origine de cette échelle est le 17 novembre 1858 à 0h.
         Cette méthode est valable aussi bien pour les années positives que
         négatives, mais pas pour des jours juliens négatifs.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            JJ jour julien
+            Erreur si :
+                avantjj0(Y, M, D)
+                (Y, M, D) n’est pas une date conforme
+                    - voir conforme(Y, M, D) –
     """
     return jourjulien(Y, M, D) - 2400000.5
 
 def joursemaine(Y, M, D):
     """
         Détermine le jour de la semaine correspondant à une date.
+        Entrée :
+            Y l’année
+            M le numéro du mois
+            D le jour du mois avec éventuellement des décimales de jour
+        Retour :
+            Jour de la semaine (lundi, mardi, ….)
+            Erreur si (Y, M, D) n’est pas une date conforme
+                - voir conforme(Y, M, D) –
     """
     [Y, M, D] = conforme(Y, M, D)
     JJ = jourjulien(Y, M, int(D))
     return jours_semaine[int(JJ+1.5) % 7]
 
-def mnn_precession(T):
+def parametres_precession(T):
     """
-        Calcul des paramètres m,n et n de la précession.
-        T en siècle julien.
-        m_alpha et n_alpha en seconde.
-        n_delta en seconde d'arc.
+        Calcul les paramètres de la précession.
+        Entrée :
+            T = siècles juliens à partir de l'époque 2000.0
+        Retour :
+            tuple (m_alpha, n_alpha, n_delta)
+            m_alpha et n_alpha (s)
+            n_delta (")
     """
-    m_alpha = incert.i("3.07496") + incert.i("0.00186")*incert.it(T, 0)
-    n_alpha = incert.i("1.33621") - incert.i("0.00057")*incert.it(T, 0)
-    n_delta = incert.i("20.0431") - incert.i("0.0085")*incert.it(T, 0)
+    m_alpha = incert.i("3.07496") + incert.i("0.00186")*T
+    n_alpha = incert.i("1.33621") - incert.i("0.00057")*T
+    n_delta = incert.i("20.0431") - incert.i("0.0085")*T
     return (m_alpha, n_alpha, n_delta)
