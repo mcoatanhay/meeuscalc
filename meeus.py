@@ -13,6 +13,7 @@ try:
     import mes_modules_path
 except:
     pass
+import coordonnees.coord as coord
 import etoilescat.etoiles as etoiles
 import incertitudes.incert as incert
 
@@ -143,7 +144,7 @@ def conforme(Y, M, D):
 
 def coordonnees_moyennes(HR, A):
     """
-        Calcul les coordonnées moyennes de l'étoile:
+        Calcul approximatif des coordonnées moyennes de l'étoile:
             en ascenscion droite
             et en déclinaison de
         pour l'année A.
@@ -151,9 +152,10 @@ def coordonnees_moyennes(HR, A):
             HR = numéro de l'étoile
             A = Année
         Sortie :
-            tuple (alpha, delta)
-            alpha = ascension droite (hms)
-            delta = déclinaison (°'")
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
     """
     calculs = []
     resultat = {}
@@ -163,7 +165,7 @@ def coordonnees_moyennes(HR, A):
     calculs.append({'pmRA (s/y)': pmRA})
     calculs.append({'pmDE (mas/y)': data.pmDE})
     pmDE = incert.i(data.pmDE)/1000
-    calculs.append({'pmDE ("/y)': pmDE})
+    calculs.append({'pmDE ("s/y)': pmDE})
     alpha = int(data.RAh) + incert.i(int(data.RAm))/60
     alpha += incert.i(data.RAs)/3600
     alpha *= 15
@@ -171,9 +173,14 @@ def coordonnees_moyennes(HR, A):
     delta = int(data.DEsgn + data.DEd) + incert.i(int(data.DEm))/60
     delta += incert.i(data.DEs)/3600
     calculs.append({'DEC0 (°)': delta})
-    deltaA = A - 2000
-    S = incert.it(deltaA/100, 0)
-    (m_alpha, n_alpha, n_delta) = parametres_precession(S)
+    deltaA = incert.it(A - 2000, 0)
+    calculs.append({'DeltaA (année)': deltaA})
+    S = deltaA/100
+    calculs.append({'S (siècle) ': S})
+    parametres = parametres_precession(S)
+    m_alpha = parametres['m_alpha (s)']
+    n_alpha = parametres['n_alpha (s)']
+    n_delta = parametres['n_delta (")']
     calculs.append({'m_alpha (s)': m_alpha})
     calculs.append({'n_alpha (s)':  n_alpha})
     calculs.append({'n_delta (")': n_delta})
@@ -198,7 +205,179 @@ def coordonnees_moyennes(HR, A):
     calculs.append({'DEf (°)': DEf})
     resultat['calculs'] = calculs
     resultat['RAf (°)'] = RAf
-    resultat['DEf (°)'] = DEf;
+    resultat['DEf (°)'] = DEf
+    return resultat
+
+def coordonnees_moyennes_rigoureuses(HR, A):
+    """
+        Calcul rigoureux des coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    """
+    calculs = []
+    resultat = {}
+    data = etoiles.etoile_data(HR)
+    pmRA = incert.it(data.pmRA, 0)/1000
+    calculs.append({'pmRA (as/y)': pmRA})
+    pmDE = incert.it(data.pmDE, 0)/1000
+    calculs.append({'pmDE (as/y)': pmDE})
+    alpha = int(data.RAh) + incert.i(int(data.RAm))/60
+    alpha += incert.i(data.RAs)/3600
+    alpha *= 15
+    calculs.append({'RA0 (°)': alpha})
+    delta = int(data.DEsgn + data.DEd) + incert.i(int(data.DEm))/60
+    delta += incert.i(data.DEs)/3600
+    calculs.append({'DEC0 (°)': delta})
+    deltaA = incert.it(A - 2000, 0)
+    calculs.append({'DeltaA (année)': deltaA})
+    alpha1 = (alpha + pmRA*deltaA/3600)*incert.pi/180
+    calculs.append({'alpha1 (°)': alpha1})
+    delta1 = (delta + pmDE*deltaA/3600)*incert.pi/180
+    calculs.append({'delta1 (°)': delta1})
+    t = deltaA/100
+    calculs.append({'t (siècle)': t})
+    dzeta = (("2306.2181"*t + "0.30188"*t**2 + "0.017998"*t**3)/3600)*incert.pi/180
+    zed = (("2306.2181"*t + "1.09468"*t**2 + "0.018203"*t**3)/3600)*incert.pi/180
+    theta = (("2004.3109"*t + "0.42665"*t**2 + "0.041833"*t**3)/3600)*incert.pi/180
+    A = incert.cos(delta1)*incert.sin(alpha1 + dzeta)
+    B = incert.cos(theta)*incert.cos(delta1)*incert.cos(alpha1 + dzeta) \
+        - incert.sin(theta)*incert.sin(delta1)
+    C = incert.sin(theta)*incert.cos(delta1)*incert.cos(alpha1 + dzeta) \
+        + incert.cos(theta)*incert.sin(delta1)
+    delta = incert.asin(C)
+    calculs.append({'delta (°)': delta})
+    alpha = incert.atan2(A, B) + zed
+    if(alpha.valeur < 0):
+        alpha += 2*incert.pi
+    calculs.append({'alpha (°)': alpha})
+    resultat['calculs'] = calculs
+    resultat['RAf (°)'] = alpha*180/incert.pi
+    resultat['DEf (°)'] = delta*180/incert.pi
+    return resultat
+
+def coordonnees_moyennes2(HR, A):
+    """
+        Calcul les coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A première méthode matricielle.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    """
+    calculs = []
+    resultat = {}
+    data = etoiles.etoile_data(HR)
+    pmRA = incert.it(data.pmRA, 0)/1000
+    calculs.append({'pmRA (as/y)': pmRA})
+    pmDE = incert.it(data.pmDE, 0)/1000
+    calculs.append({'pmDE (as/y)': pmDE})
+    alpha = int(data.RAh) + incert.i(int(data.RAm))/60
+    alpha += incert.i(data.RAs)/3600
+    alpha *= 15
+    calculs.append({'RA0 (°)': alpha})
+    delta = int(data.DEsgn + data.DEd) + incert.i(int(data.DEm))/60
+    delta += incert.i(data.DEs)/3600
+    calculs.append({'DEC0 (°)': delta})
+    deltaA = incert.it(A - 2000, 0)
+    calculs.append({'DeltaA (année)': deltaA})
+    S = deltaA/100
+    calculs.append({'S (siècle)': S})
+    DS = deltaA/1000
+    calculs.append({'DS (deca siècle)': DS})
+    RA1 = alpha + pmRA*deltaA/3600
+    calculs.append({'RA1 (°)': RA1})
+    DE1 = delta + pmDE*deltaA/3600
+    calculs.append({'DE1 (°)': DE1})
+    psi1 = RA1*incert.pi/180
+    phi1 = DE1*incert.pi/180
+    U1 = coord.xyzdepolaire(psi1, phi1, incert.un)
+    calculs.append({'U1 (m)': U1})
+    parametres = coord.parametres_precession(DS)
+    calculs += parametres['calculs']
+    U2 = coord.rotation3(-(parametres['zeta (")']/3600)*(incert.pi/180), U1)
+    U3 = coord.rotation2((parametres['theta (")']/3600)*(incert.pi/180), U2)
+    Uf = coord.rotation3(-(parametres['z (")']/3600)*(incert.pi/180), U3)
+    (psif, phif, rf) = coord.polairedexyz(Uf)
+    if(psif.valeur < 0):
+        psif += incert.pi*2
+    resultat['calculs'] = calculs
+    resultat['RAf (°)'] = psif*180/incert.pi
+    resultat['DEf (°)'] = phif*180/incert.pi
+    return resultat
+
+def coordonnees_moyennes3(HR, A):
+    """
+        Calcul les coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A deuxième méthode matricielle.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    """
+    calculs = []
+    resultat = {}
+    data = etoiles.etoile_data(HR)
+    pmRA = incert.it(data.pmRA, 0)/1000
+    calculs.append({'pmRA (as/y)': pmRA})
+    pmDE = incert.it(data.pmDE, 0)/1000
+    calculs.append({'pmDE (as/y)': pmDE})
+    alpha = int(data.RAh) + incert.i(int(data.RAm))/60
+    alpha += incert.i(data.RAs)/3600
+    alpha *= 15
+    calculs.append({'RA0 (°)': alpha})
+    delta = int(data.DEsgn + data.DEd) + incert.i(int(data.DEm))/60
+    delta += incert.i(data.DEs)/3600
+    calculs.append({'DEC0 (°)': delta})
+    deltaA = incert.it(A - 2000, 0)
+    calculs.append({'DeltaA (année)': deltaA})
+    S = deltaA/100
+    calculs.append({'S (siècle)': S})
+    DS = deltaA/1000
+    calculs.append({'DS (deca siècle)': DS})
+    RA1 = alpha + pmRA*deltaA/3600
+    calculs.append({'RA1 (°)': RA1})
+    DE1 = delta + pmDE*deltaA/3600
+    calculs.append({'DE1 (°)': DE1})
+    # psi1 = (incert.i(360) - RA1)*incert.pi/180
+    psi1 = RA1*incert.pi/180
+    phi1 = DE1*incert.pi/180
+    U1 = coord.xyzdepolaire(psi1, phi1, incert.un)
+    calculs.append({'U1 (m)': U1})
+    parametres = coord.parametres_precession(DS)
+    epsilon0 = incert.i(coord.precession_uai2000_coef['epsilon (")'][0])
+    calculs += parametres['calculs']
+    U2 = coord.rotation1((epsilon0/3600)*(incert.pi/180), U1)
+    U3 = coord.rotation3(-(parametres['psi (")']/3600)*(incert.pi/180), U2)
+    U4 = coord.rotation1(-(parametres['omega (")']/3600)*(incert.pi/180), U3)
+    Uf = coord.rotation3((parametres['khi (")']/3600)*(incert.pi/180), U4)
+    (psif, phif, rf) = coord.polairedexyz(Uf)
+    if(psif.valeur < 0):
+        psif += incert.pi*2
+    resultat['calculs'] = calculs
+    # resultat['RAf (°)'] = incert.i(360) - psif*180/incert.pi
+    resultat['RAf (°)'] = psif*180/incert.pi
+    resultat['DEf (°)'] = phif*180/incert.pi
     return resultat
 
 def date(JJ):
@@ -389,17 +568,23 @@ def joursemaine(Y, M, D):
     JJ = jourjulien(Y, M, int(D))
     return jours_semaine[int(JJ+1.5) % 7]
 
-def parametres_precession(T):
+def parametres_precession(t):
     """
-        Calcul les paramètres de la précession.
+        Calcul les paramètres de la précession approximative.
         Entrée :
-            T = siècles juliens à partir de l'époque 2000.0
+            t en siècles juliens à partir de l'époque 2000.0
+                t = [(JJ) - (JJ)2000.0] / 36525
         Retour :
-            tuple (m_alpha, n_alpha, n_delta)
-            m_alpha et n_alpha (s)
+            dictionnaire:
+            m_alpha (s)
+            n_alpha (s)
             n_delta (")
     """
-    m_alpha = incert.i("3.07496") + incert.i("0.00186")*T
-    n_alpha = incert.i("1.33621") - incert.i("0.00057")*T
-    n_delta = incert.i("20.0431") - incert.i("0.0085")*T
-    return (m_alpha, n_alpha, n_delta)
+    resultat = {}
+    resultat['m_alpha (s)'] = "3.07496" + "0.00186"*t
+    resultat['n_alpha (s)'] = "1.33621" - "0.00057"*t
+    resultat['n_delta (")'] = "20.0431" - "0.0085"*t
+    return resultat
+
+
+

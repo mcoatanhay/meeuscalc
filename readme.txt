@@ -59,7 +59,7 @@ FUNCTIONS
                 calendrier Julien vers Grégorien
     
     coordonnees_moyennes(HR, A)
-        Calcul les coordonnées moyennes de l'étoile:
+        Calcul approximatif des coordonnées moyennes de l'étoile:
             en ascenscion droite
             et en déclinaison de
         pour l'année A.
@@ -67,9 +67,52 @@ FUNCTIONS
             HR = numéro de l'étoile
             A = Année
         Sortie :
-            tuple (alpha, delta)
-            alpha = ascension droite (hms)
-            delta = déclinaison (°'")
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    
+    coordonnees_moyennes2(HR, A)
+        Calcul les coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A première méthode matricielle.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    
+    coordonnees_moyennes3(HR, A)
+        Calcul les coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A deuxième méthode matricielle.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
+    
+    coordonnees_moyennes_rigoureuses(HR, A)
+        Calcul rigoureux des coordonnées moyennes de l'étoile:
+            en ascenscion droite
+            et en déclinaison de
+        pour l'année A.
+        Entrée :
+            HR = numéro de l'étoile
+            A = Année
+        Sortie :
+            dictionnaire :
+            'calculs' = calculs intermédiaires pour débogage
+            'RAf (°)' = ascension droite (°) de 0 à 360°
+            'DEf (°)' = déclinaison (°) de -90 à +90°
     
     date(JJ)
         Détermine la date du calendrier à partir du jour julien.
@@ -166,13 +209,15 @@ FUNCTIONS
             Erreur si (Y, M, D) n’est pas une date conforme
                 - voir conforme(Y, M, D) –
     
-    parametres_precession(T)
-        Calcul les paramètres de la précession.
+    parametres_precession(t)
+        Calcul les paramètres de la précession approximative.
         Entrée :
-            T = siècles juliens à partir de l'époque 2000.0
+            t en siècles juliens à partir de l'époque 2000.0
+                t = [(JJ) - (JJ)2000.0] / 36525
         Retour :
-            tuple (m_alpha, n_alpha, n_delta)
-            m_alpha et n_alpha (s)
+            dictionnaire:
+            m_alpha (s)
+            n_alpha (s)
             n_delta (")
 
 DATA
