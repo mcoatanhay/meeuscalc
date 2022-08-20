@@ -8,7 +8,7 @@ DESCRIPTION
     de Jean MEEUS, édition 2014.
 
 FUNCTIONS
-    avantjj0(Y, M, D)
+    avantJJ0(Y, M, D)
         Vérifie si une date (Y, M, D) se trouve avant le jour julien 0, c'est
         à dire avant le 1er janvier - 4712 à 12H (-4712, 1, 1.5).
         Entrée :
@@ -16,7 +16,7 @@ FUNCTIONS
             M le numéro du mois
             D le jour du mois avec éventuellement des décimales de jour
         Retour :
-            booleen : True or False
+            booléen : True or False
             erreur : si (Y, M, D) n'est pas une date conforme
                 - voir conforme(Y, M, D) -
     
@@ -30,7 +30,7 @@ FUNCTIONS
             Erreur si Y n’est pas convertible en entier
     
     calendrier(Y, M, D)
-        Retourne le calendrier (Julien ou Gregorien) qui correspond à une date.
+        Retourne le calendrier (Julien ou Grégorien) qui correspond à une date.
         Entrée :
             Y l’année
             M le numéro du mois
@@ -39,9 +39,8 @@ FUNCTIONS
             « Julien »
             « Grégorien »
             Erreur si (Y, M, D) n’est pas une date conforme
-                - voir conforme(Y, M, D) -
     
-    conforme(Y, M, D)
+    conformeInt(Y, M, D)
         Vérifie la conformité de la date proposée.
         Entrée :
             Y l’année
@@ -49,9 +48,9 @@ FUNCTIONS
             D le jour du mois avec éventuellement des décimales de jour
         Retour :
             [Y, M, D]
-            Y l’année
-            M le numéro du mois
-            D le jour du mois avec éventuellement des décimales de jour
+            Y l’année (entière)
+            M le numéro du mois (entier)
+            D le jour du mois avec éventuellement des décimales de jour (float)
             Erreur si :
                 le mois n’est pas compris entre 1 et 12
                 le nombre de jours n’est pas correct pour le mois et l’année.
@@ -121,7 +120,7 @@ FUNCTIONS
         Entrée :
             JJ le jour julien
         Retour :
-            [Y, M, D]
+            date au format [Y, M, D]
             Y l’année
             M le numéro du mois
             D le jour du mois avec éventuellement des décimales de jour
@@ -129,18 +128,42 @@ FUNCTIONS
                 JJ n’est pas convertible en float
                 JJ < 0
     
-    dimanchepaques(Y)
+    dateJourAnnee(Y, N)
+        Détermine la date du N^iem jour de l'année Y.
+        Entrée :
+            Y l’année
+            N numéro du jour
+        Retour :
+            Date au format [Y,M,D]
+    
+    deltaJours(date1, date2)
+        Détermine le nombre de jours entre deux dates.
+        Entrée
+            date1, au format [Y, M, D]
+            date2, au format [Y, M, D]
+        Retour
+            nombre de jours
+            Erreur si une date est non conforme
+    
+    dimanchePaques(Y)
         Calcul la date du jour de Pâques de l'année Y.
+        La date de Pâques est fixée au premier dimanche après la première
+        pleine lune qui suit le 21 mars, donc au plus tôt le 22/03, si la
+        pleine lune tombe le soir du 21, et au plus tard le 25/04.
         Entrée :
             Y l’année
         Retour :
-            [Y, M, D]
+            date au format [Y, M, D]
             Y l’année
             M le numéro du mois
             D le jour du mois
             Erreur si Y n’est pas convertible en entier
     
-    jourannee(Y, M, D)
+    intM(nombre)
+        Donne le plus grand nombre entier qui ne soit pas plus grand que le
+        nombre donné.
+    
+    jourAnnee(Y, M, D)
         Détermine le numéro de jour de l'année correspondant à une date.
         Entrée :
             Y l’année
@@ -151,13 +174,13 @@ FUNCTIONS
             Entre 1 et 365 pour une année régulière
             Entre 1 et 366 pour une année bissextile
             Erreur si (Y, M, D) n’est pas une date conforme
-                - voir conforme(Y, M, D) -
     
-    jourjulien(Y, M, D)
+    jourJulien(Y, M, D)
         Détermine la valeur du jour julien qui correspond à une date donnée.
         Cette méthode est valable aussi bien pour les années positives que
         négatives, mais pas pour des jours juliens négatifs.
         Entrée :
+            (Date grégorienne ou julienne)
             Y l’année
             M le numéro du mois
             D le jour du mois avec éventuellement des décimales de jour
@@ -165,10 +188,11 @@ FUNCTIONS
             JJ jour julien
             Erreur si :
                 avantjj0(Y, M, D)
-                (Y, M, D) n’est pas une date conforme
-                    - voir conforme(Y, M, D) –
+                non conformeInt(Y, M, D)
+        Origine (1er janvier - 4712 à 12H) :
+            jourjulien(-4712,1,1.5) = 0
     
-    jourjulien0(Y)
+    jourJulien0(Y)
         Détermine le jour julien correspondant au 0.0 janvier de l'année Y.
         Cette méthode est valable aussi bien pour les années positives que
         négatives, mais pas pour des jours juliens négatifs.
@@ -180,7 +204,7 @@ FUNCTIONS
                 Y n’est pas convertible en entier
                 Y < -4711
     
-    jourjulienmodif(Y, M, D)
+    jourJulienModif(Y, M, D)
         Détermine la valeur du jour julien modifié (MDJ) qui correspond
         à une date donnée.
         MDJ = JJ - 2 400 000,5
@@ -198,7 +222,7 @@ FUNCTIONS
                 (Y, M, D) n’est pas une date conforme
                     - voir conforme(Y, M, D) –
     
-    joursemaine(Y, M, D)
+    jourSemaine(Y, M, D)
         Détermine le jour de la semaine correspondant à une date.
         Entrée :
             Y l’année
@@ -207,7 +231,6 @@ FUNCTIONS
         Retour :
             Jour de la semaine (lundi, mardi, ….)
             Erreur si (Y, M, D) n’est pas une date conforme
-                - voir conforme(Y, M, D) –
     
     parametres_precession(t)
         Calcul les paramètres de la précession approximative.
@@ -224,6 +247,6 @@ DATA
     jours_semaine = {0: 'dimanche', 1: 'lundi', 2: 'mardi', 3: 'mercredi',...
 
 FILE
-    c:\users\mc\mu_code\_mes_modules\meeuscalc\meeus.py
+    c:\users\mc\documents\python\mes_modules\meeuscalc\meeus.py
 
 
